@@ -1,0 +1,66 @@
+## load tidyr (in tidyverse)
+library(tidyverse) # install.packages("tidyverse")
+
+## load wide data
+gap_wide <- read.csv('https://raw.githubusercontent.com/OHI-Science/data-science-training/master/data/gapminder_wide.csv')
+
+head(gap_wide)
+str(gap_wide)
+
+## practice tidyr::gather() wide to long
+gap_long <- gap_wide %>% 
+  gather(key   = obstype_year,
+         value = obs_values,
+         -continent, -country) 
+# or 
+gap_long <- gap_wide %>% 
+  gather(key   = obstype_year,
+         value = obs_values,
+         dplyr::starts_with('pop'),
+         dplyr::starts_with('lifeExp'),
+         dplyr::starts_with('gdpPercap'))
+
+## gather() and separate() to create our original gapminder
+gap_long <- gap_wide %>% 
+  gather(key   = obstype_year,
+         value = obs_values,
+         -continent, -country) %>%
+  separate(obstype_year,
+           into = c('obs_type','year'),
+           sep="_")
+
+## practice: can still do calculations in long format
+gap_long %>% 
+  group_by(continent, obs_type) %>%
+  summarize(means = mean(obs_values))
+
+## spread() from normal to wide
+gap_normal <- gap_long %>% 
+  spread(obs_type, obs_values) %>%
+  select(country, continent, year, lifeExp, pop, gdpPercap)
+
+## check that all.equal()
+all.equal(gap_normal,gapminder)
+
+## unite() and spread(): convert gap_long to gap_wide
+head(gap_long) # remember the columns
+
+gap_wide_new <- gap_long %>% 
+  # first unite obs_type and year into a new column called var_names. Separate by _
+  unite(col = var_names, obs_type, year, sep = "_") %>% 
+  # then spread var_names out by key-value pair.
+  spread(key = var_names, value = obs_values)
+str(gap_wide_new)
+
+kelpdf <- data.frame(
+  Year = c(1999, 2000, 2004, 1999, 2004),
+  Taxon = c("Saccharina", "Saccharina", "Saccharina", "Agarum", "Agarum"),
+  Abundance = c(4,5,2,1,8)
+)
+
+kelpdf
+
+kelpdf %>% 
+  complete(Year, Taxon)
+
+kelpdf %>% complete(Year, Taxon, fill = list(Abundance = 0))
